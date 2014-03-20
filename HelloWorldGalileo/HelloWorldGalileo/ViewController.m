@@ -13,7 +13,7 @@
 
 //  2) Sometimes the completionBlock for incrementTargetPosition:... is being called before the movement actually finishes.
 
-//  3) overflow error when rotationg around 360 degs
+//  3) Overflow error when rotationg around 360 degs. reproducible via accelerationBugTriggerAction:
 
 
 @interface ViewController () <GCGalileoDelegate>
@@ -136,13 +136,50 @@
 
     [self disableUI];
     NSDate *now = [NSDate date];
+
     void (^completionBlock) (BOOL) = ^(BOOL wasCommandPreempted)
     {
         [self controlDidReachTargetPosition:wasCommandPreempted commandIssuedDate:now];
     };
     
     dispatch_async([self _dispatchQ], ^{
-        [[[GCGalileo sharedGalileo] positionControlForAxis:GCControlAxisTilt] incrementTargetPosition:-359.9 completionBlock:completionBlock waitUntilStationary:[self _waitFlag]];
+        GCPositionControl *tilt = [[GCGalileo sharedGalileo] positionControlForAxis:GCControlAxisTilt];
+        [tilt setVelocity:tilt.maxVelocity*0.5];
+        [tilt setAcceleration:tilt.maxAcceleration*0.5];
+        NSLog(@"tiltAnticlockwise: tilt.minVelocity=%@  tilt.maxVelocity=%@  tilt.minAcceleration=%@  tilt.maxAcceleration=%@",
+              @(tilt.minVelocity), @(tilt.maxVelocity), @(tilt.minAcceleration), @(tilt.maxAcceleration));
+        [tilt incrementTargetPosition:-359.9 completionBlock:completionBlock waitUntilStationary:[self _waitFlag]];
+    });
+}
+
+
+- (IBAction)accelerationBugTriggerAction:(id)sender {
+    NSLog(@"accelerationBugTriggerAction:");
+    
+    [self disableUI];
+    NSDate *now = [NSDate date];
+    
+    void (^completionBlock) (BOOL) = ^(BOOL wasCommandPreempted)
+    {
+        [self controlDidReachTargetPosition:wasCommandPreempted commandIssuedDate:now];
+        
+        if (sender != nil) {
+            [self accelerationBugTriggerAction:nil];
+        }
+        
+    };
+    
+    
+    dispatch_async([self _dispatchQ], ^{
+        GCPositionControl *tilt = [[GCGalileo sharedGalileo] positionControlForAxis:GCControlAxisTilt];
+        [tilt setVelocity:tilt.maxVelocity*0.5];
+        [tilt setAcceleration:tilt.maxAcceleration*0.5];
+        
+        NSLog(@"accelerationBugTriggerAction: tilt.minVelocity=%@  tilt.maxVelocity=%@  tilt.minAcceleration=%@  tilt.maxAcceleration=%@",
+              @(tilt.minVelocity), @(tilt.maxVelocity), @(tilt.minAcceleration), @(tilt.maxAcceleration));
+        [tilt incrementTargetPosition:-359.9 completionBlock:completionBlock waitUntilStationary:[self _waitFlag]];
+        
+        [tilt resetOriginToCurrentPosition];
     });
 }
 
@@ -154,7 +191,7 @@
 {
     NSDate *now = [NSDate date];
     NSTimeInterval commandExecTime = [now timeIntervalSinceDate:commandIssuedDate];
-    NSLog(@"controlDidReachTargetPosition: wasCommandPreempted=?%i  commandExecTime=%f", wasCommandPreempted, commandExecTime);
+    NSLog(@"controlDidReachTargetPosition: wasCommandPreempted=?%i  commandExecTime=%f\n", wasCommandPreempted, commandExecTime);
     
     if (wasCommandPreempted == NO) {
         // Re-enable the UI now that the target has been reached, assuming we are still connected to Galileo

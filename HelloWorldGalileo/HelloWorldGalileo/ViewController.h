@@ -10,6 +10,9 @@
 @property (weak, nonatomic) IBOutlet UIButton *panAnticlockwiseButton;
 @property (weak, nonatomic) IBOutlet UIButton *tiltClockwiseButton;
 @property (weak, nonatomic) IBOutlet UIButton *tiltAnticlockwiseButton;
+
+@property (weak, nonatomic) IBOutlet UIButton *accelerationBugTriggerButton;
+
 @property (weak, nonatomic) IBOutlet UILabel *statusLabel;
 
 

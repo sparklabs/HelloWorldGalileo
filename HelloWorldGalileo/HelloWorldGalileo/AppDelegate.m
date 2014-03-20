@@ -10,6 +10,10 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+    int archBits = sizeof(void*)*8;
+    NSLog(@"didFinishLaunchingWithOptions: archBits=%i", archBits);
+    
+    
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     
     // Override point for customization after application launch.
